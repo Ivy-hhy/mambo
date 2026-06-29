@@ -31,14 +31,12 @@ static bool seize_prev;
 static bool prepare_prev;
 static bool raise_prev;
 static bool attack_prev;
-static bool catch_seized;
 static bool module_ready;
 
 static void seize_action(void)
 {
 	gpio_pin_set_dt(&catch_valve1, true);
 	k_msleep(500);
-	catch_seized = true;
 	LOG_INF("catch seize");
 }
 
@@ -46,7 +44,6 @@ static void release_action(void)
 {
 	gpio_pin_set_dt(&catch_valve1, false);
 	k_msleep(500);
-	catch_seized = false;
 	LOG_INF("catch release");
 }
 
@@ -90,7 +87,6 @@ int module_r1_catch_init(void)
 
 	gpio_pin_configure_dt(&catch_valve1, GPIO_OUTPUT_INACTIVE);
 	gpio_pin_configure_dt(&catch_valve2, GPIO_OUTPUT_INACTIVE);
-	catch_seized = false;
 
 	motor_control(catch_arm_motor, SET_ZERO);
 	motor_control(catch_dm_motor, SET_ZERO);
@@ -124,11 +120,9 @@ void module_r1_catch_update(const struct team_usb_packet *packet, bool packet_up
 	attack_pressed = team_usb_button_pressed(packet, CTRL_BTN_CATCH_ATTACK);
 
 	if (seize_pressed && !seize_prev) {
-		if (catch_seized) {
-			release_action();
-		} else {
-			seize_action();
-		}
+		seize_action();
+	} else if (!seize_pressed && seize_prev) {
+		release_action();
 	}
 
 	if (prepare_pressed && !prepare_prev) {

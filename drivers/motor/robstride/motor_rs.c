@@ -192,7 +192,7 @@ static void rs_motor_pack(const struct device *dev, struct can_frame *frame)
 	}
 }
 
-int rs_motor_set_mode(const struct device *dev, enum motor_mode mode)
+void rs_motor_set_mode(const struct device *dev, enum motor_mode mode)
 {
 
 	struct rs_motor_data *data = dev->data;
@@ -207,7 +207,7 @@ int rs_motor_set_mode(const struct device *dev, enum motor_mode mode)
 		break;
 	default:
 		LOG_DBG("Unsupported motor mode: %d", mode);
-		return -ENOSYS;
+		return;
 	}
 	struct can_frame frame = {0};
 	struct rs_can_id *rs_can_id = (struct rs_can_id *)&(frame.id);
@@ -237,7 +237,6 @@ int rs_motor_set_mode(const struct device *dev, enum motor_mode mode)
 			break;
 		}
 	}
-	return 0;
 }
 
 static int get_motor_id(struct can_frame *frame)
@@ -376,6 +375,7 @@ int rs_send_mit(const struct device *dev, motor_status_t *status)
 	frame.data[6] = (kd_tmp >> 8) & 0xFF;
 	frame.data[7] = kd_tmp & 0xFF;
 	can_send_queued(cfg->common.phy, &frame);
+	return 0;
 }
 
 int rs_send_pid_params(const struct device *dev, motor_status_t *status)
@@ -387,6 +387,7 @@ int rs_send_pid_params(const struct device *dev, motor_status_t *status)
 		.motor_id = cfg->common.tx_id,
 		.reserved = 0,
 	};
+	return 0;
 }
 
 /**
@@ -438,13 +439,9 @@ int rs_set(const struct device *dev, motor_status_t *status)
 	if (status->mode != data->common.mode) {
 		// LOG_DBG("rs_set: mode changed from %d to %d", data->common.mode, status->mode);
 		data->common.mode = status->mode;
-		if (rs_motor_set_mode(dev, status->mode) < 0) {
-			LOG_ERR("Failed to set motor mode");
-			return -EIO;
-		}
-	} else {
-		return 0; // No mode change, no need to set
+		rs_motor_set_mode(dev, status->mode);
 	}
+	return 0;
 }
 
 DT_INST_FOREACH_STATUS_OKAY(RS_MOTOR_INST)
