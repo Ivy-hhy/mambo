@@ -18,3 +18,7 @@ app
 assembly.txt
 .vscode
 assembly.txt
+
+# build outputs
+build*/
+**/build*/
