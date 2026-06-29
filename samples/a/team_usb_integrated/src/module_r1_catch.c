@@ -13,29 +13,17 @@
 LOG_MODULE_REGISTER(team_usb_r1_catch, LOG_LEVEL_INF);
 
 /* Button IDs (bits in the USB packet) */
+#define CTRL_BTN_SWITCH  43U
 #define CTRL_BTN_PREPARE 40U
 #define CTRL_BTN_RAISE   41U
 #define CTRL_BTN_ATTACK  42U
-#define CTRL_BTN_SWITCH  43U
 
-/* Posture states — MCU-local, not dependent on button hold */
+/* Posture states — flow tracking / logging only */
 enum posture_state {
 	POSTURE_P1,	/* idle:   arm=0°,    DM=0°,   valve2=off */
-	POSTURE_P2,	/* ready:  arm=90°,   DM=90°,  valve2=on  */
-	POSTURE_P3,	/* attack: arm=179.5°, DM=0°,   valve2=off */
-	POSTURE_NUM,
-};
-
-struct posture {
-	float arm_angle;
-	float dm_angle;
-	bool  valve2;
-};
-
-static const struct posture postures[POSTURE_NUM] = {
-	[POSTURE_P1] = { .arm_angle = 0.0f,   .dm_angle = 0.0f,   .valve2 = false },
-	[POSTURE_P2] = { .arm_angle = 90.0f,  .dm_angle = 90.0f,  .valve2 = true  },
-	[POSTURE_P3] = { .arm_angle = 179.5f, .dm_angle = 0.0f,   .valve2 = false },
+	POSTURE_P2,	/* ready4pluggin done:  arm=90°, DM=0°,   valve2=on  */
+	POSTURE_P3,	/* raise:  arm=90°,   DM=90°,  valve2=on  */
+	POSTURE_P4,	/* attack: arm=180.0°, DM=90.0°, valve2=off */
 };
 
 #define CATCH_ARM_NODE    DT_NODELABEL(motor1)
@@ -48,12 +36,14 @@ static const struct device    *catch_dm_motor  = DEVICE_DT_GET(CATCH_DM_NODE);
 static const struct gpio_dt_spec catch_valve1  = GPIO_DT_SPEC_GET(CATCH_VALVE_1_NODE, gpios);
 static const struct gpio_dt_spec catch_valve2  = GPIO_DT_SPEC_GET(CATCH_VALVE_2_NODE, gpios);
 
-/* ---- MCU-persisted state (survives packet loss) ---- */
+/* ---- MCU-persisted state (target values, not posture-enum-indexed) ---- */
 static enum posture_state current_posture = POSTURE_P1;
-static bool              valve1_target    = false; /* true = energised */
+static float   arm_target    = 0.0f;
+static float   dm_target     = 0.0f;
+static bool    valve2_target = false;
+static bool    valve1_target = false; /* controlled by Button 43 (Switch) */
 
-/* ---- Edge-detection history ---- */
-static bool switch_prev;
+/* ---- Edge-detection history (Prepare / Raise / Attack only) ---- */
 static bool prepare_prev;
 static bool raise_prev;
 static bool attack_prev;
@@ -64,41 +54,59 @@ static bool module_ready;
 /* ------------------------------------------------------------------ */
 static void apply_current_state(void)
 {
-	motor_set_angle(catch_arm_motor, postures[current_posture].arm_angle);
-	motor_set_mit(catch_dm_motor, 0.0f, postures[current_posture].dm_angle, 0.0f);
-	gpio_pin_set_dt(&catch_valve2, postures[current_posture].valve2);
+	motor_set_angle(catch_arm_motor, arm_target);
+	motor_set_mit(catch_dm_motor, 0.0f, dm_target, 0.0f);
+	gpio_pin_set_dt(&catch_valve2, valve2_target);
 	gpio_pin_set_dt(&catch_valve1, valve1_target);
 }
 
 /* ------------------------------------------------------------------ */
-/*  Button handlers — update MCU state (all edge-triggered)  */
-static void handle_switch(void)
-{
-	valve1_target = !valve1_target;
-	LOG_INF("switch valve1 → %s", valve1_target ? "ON" : "OFF");
-}
+/*  Sequence handlers (blocking k_msleep — mirror R1_catch/main.c)     */
 /* ------------------------------------------------------------------ */
+
+/* ready4pluggin — Prepare 序列
+ *   arm 45° (中间角度防飞出) → arm 90° → valve2 ON → DM 0° */
 static void handle_prepare(void)
 {
-	/* Toggle P1 ⟷ P2; from P3 go to P1 */
-	if (current_posture == POSTURE_P2) {
-		current_posture = POSTURE_P1;
-	} else {
-		current_posture = POSTURE_P2;
-	}
-	LOG_INF("prepare → posture %d", current_posture);
+	LOG_INF("prepare: arm → 45°");
+	arm_target = 45.0f;
+	k_msleep(100);
+
+	arm_target = 90.0f;
+	LOG_INF("prepare: arm → 90°");
+	k_msleep(600);
+
+	valve2_target = true;
+	gpio_pin_set_dt(&catch_valve2, true);
+	LOG_INF("prepare: valve2 ON");
+	k_msleep(500);
+
+	dm_target = 0.0f;
+	current_posture = POSTURE_P2;
+	LOG_INF("prepare done → P2");
 }
 
+/* Raise — DM 90° */
 static void handle_raise(void)
 {
-	current_posture = POSTURE_P2;
-	LOG_INF("raise → posture %d", current_posture);
+	dm_target = 90.0f;
+	current_posture = POSTURE_P3;
+	LOG_INF("raise: DM → 90° → P3");
 }
 
+/* ready4attack — Attack 序列
+ *   valve2 OFF → arm 179.5° */
 static void handle_attack(void)
 {
-	current_posture = POSTURE_P3;
-	LOG_INF("attack → posture %d", current_posture);
+	valve2_target = false;
+	gpio_pin_set_dt(&catch_valve2, false);
+	LOG_INF("attack: valve2 OFF");
+	k_msleep(300);
+
+	arm_target = 180.0f;
+	dm_target = 90.0f;
+	current_posture = POSTURE_P4;
+	LOG_INF("attack: arm → 180.0°, DM → 90.0° → P4");
 }
 
 /* ------------------------------------------------------------------ */
@@ -125,7 +133,11 @@ int module_r1_catch_init(void)
 	motor_control(catch_dm_motor, ENABLE_MOTOR);
 	motor_set_mode(catch_dm_motor, MIT);
 
-	/* Apply the initial posture (P1 / idle) so hardware matches state */
+	/* Initial state: P1 (idle) */
+	arm_target   = 0.0f;
+	dm_target    = 0.0f;
+	valve2_target = false;
+	valve1_target = false;
 	apply_current_state();
 
 	module_ready = true;
@@ -142,39 +154,38 @@ void module_r1_catch_update(const struct team_usb_packet *packet, bool packet_up
 		return;
 	}
 
-	/* ----- Phase 1 : process incoming packet → update MCU state ----- */
 	if (packet_updated) {
-		/* Button 1 — Switch: edge-triggered toggle valve1 ON/OFF */
+		/* ---- Button 43 (Switch) — direct state mapping ---- */
+		valve1_target = team_usb_button_pressed(packet, CTRL_BTN_SWITCH);
+
+		/* ---- Button 40 (Prepare) — edge → ready4pluggin  ---- */
 		{
-			bool switch_pressed = team_usb_button_pressed(packet, CTRL_BTN_SWITCH);
-			if (switch_pressed && !switch_prev) {
-				handle_switch();
+			bool pressed = team_usb_button_pressed(packet, CTRL_BTN_PREPARE);
+			if (pressed && !prepare_prev) {
+				handle_prepare();
 			}
-			switch_prev = switch_pressed;
+			prepare_prev = pressed;
 		}
 
-		/* Button 2 — Prepare: edge-triggered toggle P1 ⟷ P2 */
-		bool prepare_pressed = team_usb_button_pressed(packet, CTRL_BTN_PREPARE);
-		if (prepare_pressed && !prepare_prev) {
-			handle_prepare();
+		/* ---- Button 41 (Raise) — edge → DM 90°          ---- */
+		{
+			bool pressed = team_usb_button_pressed(packet, CTRL_BTN_RAISE);
+			if (pressed && !raise_prev) {
+				handle_raise();
+			}
+			raise_prev = pressed;
 		}
-		prepare_prev = prepare_pressed;
 
-		/* Button 3 — Raise: edge-triggered → P2 */
-		bool raise_pressed = team_usb_button_pressed(packet, CTRL_BTN_RAISE);
-		if (raise_pressed && !raise_prev) {
-			handle_raise();
+		/* ---- Button 42 (Attack) — edge → ready4attack   ---- */
+		{
+			bool pressed = team_usb_button_pressed(packet, CTRL_BTN_ATTACK);
+			if (pressed && !attack_prev) {
+				handle_attack();
+			}
+			attack_prev = pressed;
 		}
-		raise_prev = raise_pressed;
-
-		/* Button 4 — Attack: edge-triggered → P3 */
-		bool attack_pressed = team_usb_button_pressed(packet, CTRL_BTN_ATTACK);
-		if (attack_pressed && !attack_prev) {
-			handle_attack();
-		}
-		attack_prev = attack_pressed;
 	}
 
-	/* ----- Phase 2 : drive hardware from MCU state (every cycle) ----- */
+	/* Drive hardware from MCU state (every cycle, regardless of packet) */
 	apply_current_state();
 }
