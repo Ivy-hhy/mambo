@@ -1,0 +1,61 @@
+/{
+    motor_1 {
+        rs_motor_1: rs_motor {
+            compatible = "rs,motor";
+            id = <1>;
+            tx_id = <0x01>;
+            rx_id = <0xFD>;
+            motor_type = "RS00";
+            status = "okay";
+            can_channel = <&can1>;
+            controllers = <&mit_pid_1>;
+            capabilities = "mit";
+            p_max = "12.57f";
+            v_max = "44.0f";
+            t_max = "17.0f";
+        };
+
+    };
+    motor_2 {
+        rs_motor_2: rs_motor {
+            compatible = "rs,motor";
+            id = <2>;
+            tx_id = <0x02>;
+            rx_id = <0xFD>;
+            motor_type = "RS00";
+            status = "okay";
+            can_channel = <&can1>;
+            controllers = <&mit_pid_2>;
+            capabilities = "mit";
+            p_max = "12.57f";
+            v_max = "44.0f";
+            t_max = "17.0f";
+        };
+
+    };
+
+    pid {
+		mit_pid_1: mit_pid_1 {
+			#controller-cells = <0>;
+			compatible = "pid,single";
+			k_p = "60";
+			k_i = "0.0";
+			k_d = "2.2";
+		};
+
+		mit_pid_2: mit_pid_2 {
+			#controller-cells = <0>;
+			compatible = "pid,single";
+			k_p = "60";
+			k_i = "0.0";
+			k_d = "2.2";
+		};
+
+    };
+
+    sbus0: sbus0 {
+        compatible = "ares,sbus";
+        status = "okay";
+    };
+
+};

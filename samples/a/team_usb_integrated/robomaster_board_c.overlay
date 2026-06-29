@@ -1,0 +1,262 @@
+&cdc_acm_uart0 {
+	status = "disabled";
+};
+
+&usart6 {
+	status = "disabled";
+};
+
+/ {
+	lift_mit: lift_mit {
+		#controller-cells = <0>;
+		compatible = "pid,mit";
+		k_p = "5";
+		k_i = "0.0";
+		k_d = "1.5";
+		offset = "1.2";
+	};
+
+	catch_angle_pid: catch_angle_pid {
+		#controller-cells = <0>;
+		compatible = "pid,single";
+		k_p = "2.0";
+		k_i = "0";
+		k_d = "10.0";
+	};
+
+	catch_speed_pid: catch_speed_pid {
+		#controller-cells = <0>;
+		compatible = "pid,single";
+		k_p = "0.3";
+		k_i = "0";
+		k_d = "0.02";
+	};
+
+	catch_dm_mit: catch_dm_mit {
+		compatible = "pid,mit";
+		k_p = "5.0";
+		k_d = "1.0";
+	};
+
+	speed_pid_m3508: speed_pid_m3508 {
+		compatible = "pid,single";
+		#controller-cells = <0>;
+		k_p = "0.2";
+		k_i = "10000";
+		k_d = "0.01";
+		i_max = "25";
+		detri_lpf = "0.95";
+		out_max = "1.8";
+	};
+
+	angle_pid_m3508: angle_pid_m3508 {
+		compatible = "pid,single";
+		#controller-cells = <0>;
+		k_p = "2";
+		k_i = "0";
+		k_d = "0.3";
+		out_max = "200";
+	};
+
+	angle_pid_sbus2: angle_pid_sbus2 {
+		#controller-cells = <0>;
+		compatible = "pid,single";
+		k_p = "2";
+		k_i = "0";
+		k_d = "10";
+	};
+
+	speed_pid_sbus2: speed_pid_sbus2 {
+		#controller-cells = <0>;
+		compatible = "pid,single";
+		k_p = "0.3";
+		k_i = "0";
+		k_d = "0.02";
+	};
+
+	dm_motor000: dm_motor000 {
+		compatible = "dm,motor";
+		id = <1>;
+		rx_id = <0x1A>;
+		tx_id = <0x0A>;
+		v_max = "785";
+		p_max = "95.5";
+		status = "okay";
+		can_channel = <&can1>;
+		controllers = <&lift_mit>;
+		capabilities = "mit";
+		t_max = "5";
+		freq = <1000>;
+	};
+
+	dm_motor001: dm_motor001 {
+		compatible = "dm,motor";
+		id = <2>;
+		rx_id = <0x1B>;
+		tx_id = <0x0B>;
+		v_max = "785";
+		p_max = "95.5";
+		status = "okay";
+		can_channel = <&can1>;
+		controllers = <&lift_mit>;
+		capabilities = "mit";
+		t_max = "5";
+		freq = <1000>;
+	};
+
+	dm_motor002: dm_motor002 {
+		compatible = "dm,motor";
+		id = <3>;
+		rx_id = <0x1C>;
+		tx_id = <0x0C>;
+		v_max = "785";
+		p_max = "95.5";
+		status = "okay";
+		can_channel = <&can1>;
+		controllers = <&lift_mit>;
+		capabilities = "mit";
+		t_max = "5";
+		freq = <1000>;
+	};
+
+	dm_motor003: dm_motor003 {
+		compatible = "dm,motor";
+		id = <4>;
+		rx_id = <0x1D>;
+		tx_id = <0x0D>;
+		v_max = "785";
+		p_max = "95.5";
+		status = "okay";
+		can_channel = <&can1>;
+		controllers = <&lift_mit>;
+		capabilities = "mit";
+		t_max = "5";
+		freq = <1000>;
+	};
+
+	motor1: motor1 {
+		compatible = "dji,motor";
+		is_m2006;
+		id = <1>;
+		rx_id = <0x201>;
+		tx_id = <0x200>;
+		gear_ratio = "36.0";
+		status = "okay";
+		can_channel = <&can2>;
+		controllers = <&catch_angle_pid &catch_speed_pid>;
+		capabilities = "angle", "speed";
+	};
+
+	catch_dm_motor: catch_dm_motor {
+		compatible = "dm,motor";
+		id = <5>;
+		rx_id = <0x19>;
+		tx_id = <0x09>;
+		v_max = "785";
+		status = "okay";
+		can_channel = <&can1>;
+		controllers = <&catch_dm_mit>;
+		capabilities = "mit";
+		v_max = "0.5";
+		t_max = "5";
+		freq = <200>;
+	};
+
+	m3508_right: m3508_right {
+		compatible = "dji,motor";
+		is_m3508;
+		id = <5>;
+		rx_id = <0x205>;
+		tx_id = <0x1FF>;
+		gear_ratio = "19.2";
+		status = "okay";
+		can_channel = <&can2>;
+		controllers = <&angle_pid_m3508 &speed_pid_m3508>;
+		capabilities = "angle", "speed";
+	};
+
+	m3508_center: m3508_center {
+		compatible = "dji,motor";
+		is_m3508;
+		id = <6>;
+		rx_id = <0x206>;
+		tx_id = <0x1FF>;
+		gear_ratio = "19.2";
+		status = "okay";
+		can_channel = <&can2>;
+		controllers = <&angle_pid_m3508 &speed_pid_m3508>;
+		capabilities = "angle", "speed";
+	};
+
+	m3508_left: m3508_left {
+		compatible = "dji,motor";
+		is_m3508;
+		id = <7>;
+		rx_id = <0x207>;
+		tx_id = <0x1FF>;
+		gear_ratio = "19.2";
+		status = "okay";
+		can_channel = <&can2>;
+		controllers = <&angle_pid_m3508 &speed_pid_m3508>;
+		capabilities = "angle", "speed";
+	};
+
+	motor_o1: motor_o1 {
+		compatible = "dji,motor";
+		is_m2006;
+		id = <2>;
+		rx_id = <0x202>;
+		tx_id = <0x200>;
+		gear_ratio = "36";
+		status = "okay";
+		can_channel = <&can2>;
+		controllers = <&angle_pid_sbus2 &speed_pid_sbus2>;
+		capabilities = "angle", "speed";
+	};
+
+	motor_o2: motor_o2 {
+		compatible = "dji,motor";
+		is_m2006;
+		id = <3>;
+		rx_id = <0x203>;
+		tx_id = <0x200>;
+		gear_ratio = "36";
+		status = "okay";
+		can_channel = <&can2>;
+		controllers = <&angle_pid_sbus2 &speed_pid_sbus2>;
+		capabilities = "angle", "speed";
+	};
+
+	catch_valves {
+		compatible = "gpio-leds";
+
+		catch_emvalve1: catch_emvalve1 {
+			gpios = <&gpioe 11 GPIO_ACTIVE_HIGH>;
+			label = "catch_emvalve1";
+		};
+
+		catch_emvalve2: catch_emvalve2 {
+			gpios = <&gpioe 13 GPIO_ACTIVE_HIGH>;
+			label = "catch_emvalve2";
+		};
+	};
+
+	sbus_relays {
+		compatible = "gpio-keys";
+
+		emvalve1: emvalve1 {
+			gpios = <&gpioe 14 GPIO_ACTIVE_LOW>;
+			label = "emvalve1";
+		};
+
+		emvalve2: emvalve2 {
+			gpios = <&gpioc 6 GPIO_ACTIVE_LOW>;
+			label = "emvalve2";
+		};
+
+		emvalve3: emvalve3 {
+			gpios = <&gpioi 6 GPIO_ACTIVE_LOW>;
+			label = "emvalve3";
+		};
+	};
+};

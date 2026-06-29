@@ -1,0 +1,75 @@
+&cdc_acm_uart0 {
+    status = "disabled";
+};
+
+&usart6 {
+    status = "disabled";
+};
+
+/ {
+    dm_motor000: dm_motor000 {
+        compatible = "dm,motor";
+        id = <1>;
+        rx_id = <0x1A>;
+        tx_id = <0x0A>;
+        v_max = "785";
+        p_max = "95.5";
+        status = "okay";
+        can_channel = <&can1>;
+        controllers = <&mit>;
+        capabilities = "mit";
+        t_max = "5";
+        freq = <1000>;
+    };
+    dm_motor001: dm_motor001 {
+        compatible = "dm,motor";
+        id = <2>;
+        rx_id = <0x1B>;
+        tx_id = <0x0B>;
+        v_max = "785";
+        p_max = "95.5";
+        status = "okay";
+        can_channel = <&can1>;
+        controllers = <&mit>;
+        capabilities = "mit";
+        t_max = "5";
+        freq = <1000>;
+    };
+    dm_motor002: dm_motor002 {
+        compatible = "dm,motor";
+        id = <3>;
+        rx_id = <0x1C>;
+        tx_id = <0x0C>;
+        v_max = "785";
+        p_max = "95.5";
+        status = "okay";
+        can_channel = <&can1>;
+        controllers = <&mit>;
+        capabilities = "mit";
+        t_max = "5";
+        freq = <1000>;
+    };
+    dm_motor003: dm_motor003 {
+        compatible = "dm,motor";
+        id = <4>;
+        rx_id = <0x1D>;
+        tx_id = <0x0D>;
+        v_max = "785";
+        p_max = "95.5";
+        status = "okay";
+        can_channel = <&can1>;
+        controllers = <&mit>;
+        capabilities = "mit";
+        t_max = "5";
+        freq = <1000>;
+    };
+
+    mit: mit {
+        #controller-cells = <0>;
+        compatible = "pid,mit";
+        k_p = "5";
+        k_i = "0.0";
+        k_d = "1.5";
+        offset = "1.2";
+    };
+};

@@ -1,0 +1,252 @@
+/ {
+    /* ====================== PID 控制器 ====================== */
+    pid {
+        /* MIT 控制器 (用于 DM 电机) */
+        mit: mit {
+            #controller-cells = <0>;
+            compatible = "pid,mit";
+            k_p = "5";
+            k_i = "0";
+            k_d = "1";
+            offset = "1.2";
+        };
+
+        /* DM MIT 控制器 */
+        dm_mit: dm_mit {
+            compatible = "pid,mit";
+            k_p = "5";
+            k_d = "1";
+        };
+
+        /* 角度 PID (用于 M2006 电机) */
+        angle_pid_1: angle_pid_1 {
+            #controller-cells = <0>;
+            compatible = "pid,single";
+            k_p = "0.5";
+            k_i = "0";
+            k_d = "10";
+        };
+
+        /* 速度 PID (用于 M2006 电机) */
+        speed_pid_1: speed_pid_1 {
+            #controller-cells = <0>;
+            compatible = "pid,single";
+            k_p = "0.3";
+            k_i = "0";
+            k_d = "0.02";
+        };
+
+        /* 吸取控制 PID */
+        vo: vo {
+            compatible = "pid,single";
+            k_p = "0.0372";
+            k_i = "0.002";
+        };
+    };
+
+    /* ====================== DJI M2006 电机 ====================== */
+    rm_motor {
+        /* jiahzua 部分: 夹爪电机 */
+        motor01: motor01 {
+            compatible = "dji,motor";
+            is_m2006;
+            id = <6>;
+            rx_id = <0x206>;
+            tx_id = <0x1FF>;
+            gear_ratio = "36.0";
+            status = "okay";
+            can_channel = <&can1>;
+            controllers = <&angle_pid_1 &speed_pid_1>;
+            capabilities = "angle", "speed";
+        };
+
+        motor02: motor02 {
+            compatible = "dji,motor";
+            is_m2006;
+            id = <7>;
+            rx_id = <0x207>;
+            tx_id = <0x1FF>;
+            gear_ratio = "36.0";
+            status = "okay";
+            can_channel = <&can1>;
+            controllers = <&angle_pid_1 &speed_pid_1>;
+            capabilities = "angle", "speed";
+        };
+
+        /* xipan 部分: 吸盘推杆电机 */
+        motor_yq_o1: motor_yq_o1 {
+            compatible = "dji,motor";
+            is_m2006;
+            id = <1>;
+            rx_id = <0x201>;
+            tx_id = <0x200>;
+            gear_ratio = "36";
+            status = "okay";
+            can_channel = <&can2>;
+            controllers = <&angle_pid_1 &speed_pid_1>;
+            capabilities = "angle", "speed";
+        };
+
+        motor_yq_o2: motor_yq_o2 {
+            compatible = "dji,motor";
+            is_m2006;
+            id = <2>;
+            rx_id = <0x202>;
+            tx_id = <0x200>;
+            gear_ratio = "36";
+            status = "okay";
+            can_channel = <&can2>;
+            controllers = <&angle_pid_1 &speed_pid_1>;
+            capabilities = "angle", "speed";
+        };
+
+        motor_yq_o3: motor_yq_o3 {
+            compatible = "dji,motor";
+            is_m2006;
+            id = <3>;
+            rx_id = <0x203>;
+            tx_id = <0x200>;
+            gear_ratio = "36";
+            status = "okay";
+            can_channel = <&can2>;
+            controllers = <&angle_pid_1 &speed_pid_1>;
+            capabilities = "angle", "speed";
+        };
+
+        motor_yq_o4: motor_yq_o4 {
+            compatible = "dji,motor";
+            is_m2006;
+            id = <5>;
+            rx_id = <0x205>;
+            tx_id = <0x1FF>;
+            gear_ratio = "36";
+            status = "okay";
+            can_channel = <&can2>;
+            controllers = <>;
+            capabilities = "";
+            inverse;
+            follow = <&motor_yq_o3>;
+        };
+    };
+
+    /* ====================== DM 达妙电机 ====================== */
+    motor {
+        /* jiahzua 部分: 夹爪 DM 电机 */
+        dm_motor01: dm_motor01 {
+            compatible = "dm,motor";
+            id = <4>;
+            rx_id = <0x00>;
+            tx_id = <0x02>;
+            v_max = "785";
+            status = "okay";
+            can_channel = <&can1>;
+            controllers = <&dm_mit>;
+            capabilities = "mit";
+            t_max = "5";
+            freq = <1000>;
+        };
+
+        /* xipan 部分: 吸盘 DM 电机 */
+        dm_motor1: dm_motor1 {
+            compatible = "dm,motor";
+            id = <6>;
+            rx_id = <0x00>;
+            tx_id = <0x04>;
+            v_max = "785";
+            status = "okay";
+            can_channel = <&can2>;
+            controllers = <&dm_mit>;
+            capabilities = "mit";
+            t_max = "5";
+            freq = <1000>;
+        };
+    };
+
+    /* hhy 部分: 升降 DM 电机 */
+    dm_motor000: dm_motor000 {
+        compatible = "dm,motor";
+        id = <1>;
+        rx_id = <0x1A>;
+        tx_id = <0x0A>;
+        v_max = "785";
+        status = "okay";
+        can_channel = <&can2>;
+        controllers = <&mit>;
+        capabilities = "mit";
+        t_max = "5";
+        freq = <1000>;
+    };
+
+    dm_motor001: dm_motor001 {
+        compatible = "dm,motor";
+        id = <2>;
+        rx_id = <0x1B>;
+        tx_id = <0x0B>;
+        v_max = "785";
+        status = "okay";
+        can_channel = <&can1>;
+        controllers = <&mit>;
+        capabilities = "mit";
+        t_max = "5";
+        freq = <1000>;
+    };
+
+    dm_motor002: dm_motor002 {
+        compatible = "dm,motor";
+        id = <3>;
+        rx_id = <0x1C>;
+        tx_id = <0x0C>;
+        v_max = "785";
+        status = "okay";
+        can_channel = <&can2>;
+        controllers = <&mit>;
+        capabilities = "mit";
+        t_max = "5";
+        freq = <1000>;
+    };
+
+    dm_motor003: dm_motor003 {
+        compatible = "dm,motor";
+        id = <4>;
+        rx_id = <0x1D>;
+        tx_id = <0x0D>;
+        v_max = "785";
+        status = "okay";
+        can_channel = <&can1>;
+        controllers = <&mit>;
+        capabilities = "mit";
+        t_max = "5";
+        freq = <1000>;
+    };
+
+    /* ====================== 电磁阀 (xipan 部分) ====================== */
+    emvalve {
+        compatible = "gpio-keys";
+
+        emvalve1: emvalve1 {
+            gpios = <&gpioe 9 GPIO_ACTIVE_LOW>;
+            label = "emvalve1";
+        };
+
+        emvalve2: emvalve2 {
+            gpios = <&gpioe 11 GPIO_ACTIVE_LOW>;
+            label = "emvalve2";
+        };
+
+        emvalve3: emvalve3 {
+            gpios = <&gpioe 13 GPIO_ACTIVE_LOW>;
+            label = "emvalve3";
+        };
+
+        emvalve4: emvalve4 {
+            gpios = <&gpioe 14 GPIO_ACTIVE_LOW>;
+            label = "emvalve4";
+        };
+    };
+
+    /* ====================== SBUS 遥控器 ====================== */
+    sbus0: sbus0 {
+        compatible = "ares,sbus";
+        status = "okay";
+    };
+};
