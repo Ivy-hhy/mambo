@@ -15,7 +15,6 @@ LOG_MODULE_REGISTER(team_usb_r1_catch, LOG_LEVEL_INF);
 #define CTRL_BTN_CATCH_PREPARE 40U
 #define CTRL_BTN_CATCH_RAISE 41U
 #define CTRL_BTN_CATCH_ATTACK 42U
-#define CTRL_BTN_CATCH_RELEASE 46U
 #define CTRL_BTN_CATCH_SEIZE 47U
 
 #define CATCH_ARM_NODE DT_NODELABEL(motor1)
@@ -29,16 +28,17 @@ static const struct gpio_dt_spec catch_valve1 = GPIO_DT_SPEC_GET(CATCH_VALVE_1_N
 static const struct gpio_dt_spec catch_valve2 = GPIO_DT_SPEC_GET(CATCH_VALVE_2_NODE, gpios);
 
 static bool seize_prev;
-static bool release_prev;
 static bool prepare_prev;
 static bool raise_prev;
 static bool attack_prev;
+static bool catch_seized;
 static bool module_ready;
 
 static void seize_action(void)
 {
 	gpio_pin_set_dt(&catch_valve1, true);
 	k_msleep(500);
+	catch_seized = true;
 	LOG_INF("catch seize");
 }
 
@@ -46,6 +46,7 @@ static void release_action(void)
 {
 	gpio_pin_set_dt(&catch_valve1, false);
 	k_msleep(500);
+	catch_seized = false;
 	LOG_INF("catch release");
 }
 
@@ -89,6 +90,7 @@ int module_r1_catch_init(void)
 
 	gpio_pin_configure_dt(&catch_valve1, GPIO_OUTPUT_INACTIVE);
 	gpio_pin_configure_dt(&catch_valve2, GPIO_OUTPUT_INACTIVE);
+	catch_seized = false;
 
 	motor_control(catch_arm_motor, SET_ZERO);
 	motor_control(catch_dm_motor, SET_ZERO);
@@ -104,7 +106,6 @@ int module_r1_catch_init(void)
 void module_r1_catch_update(const struct team_usb_packet *packet, bool packet_updated)
 {
 	bool seize_pressed;
-	bool release_pressed;
 	bool prepare_pressed;
 	bool raise_pressed;
 	bool attack_pressed;
@@ -118,17 +119,16 @@ void module_r1_catch_update(const struct team_usb_packet *packet, bool packet_up
 	}
 
 	seize_pressed = team_usb_button_pressed(packet, CTRL_BTN_CATCH_SEIZE);
-	release_pressed = team_usb_button_pressed(packet, CTRL_BTN_CATCH_RELEASE);
 	prepare_pressed = team_usb_button_pressed(packet, CTRL_BTN_CATCH_PREPARE);
 	raise_pressed = team_usb_button_pressed(packet, CTRL_BTN_CATCH_RAISE);
 	attack_pressed = team_usb_button_pressed(packet, CTRL_BTN_CATCH_ATTACK);
 
-	if (release_pressed && !release_prev) {
-		release_action();
-	}
-
 	if (seize_pressed && !seize_prev) {
-		seize_action();
+		if (catch_seized) {
+			release_action();
+		} else {
+			seize_action();
+		}
 	}
 
 	if (prepare_pressed && !prepare_prev) {
@@ -144,7 +144,6 @@ void module_r1_catch_update(const struct team_usb_packet *packet, bool packet_up
 	}
 
 	seize_prev = seize_pressed;
-	release_prev = release_pressed;
 	prepare_prev = prepare_pressed;
 	raise_prev = raise_pressed;
 	attack_prev = attack_pressed;
