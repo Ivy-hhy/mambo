@@ -42,14 +42,13 @@ int main(void)
 	motor_control(motor1, ENABLE_MOTOR);
 	k_sleep(K_MSEC(500));
 
-	motor_set_mode(motor1, MIT);
 	/* Start Feedback thread*/
 	struct k_thread feedback_thread_data;
 	feedback_tid = k_thread_create(&feedback_thread_data,
 				       feedback_stack_area, // 修改为 can_send_stack_area
 				       K_THREAD_STACK_SIZEOF(feedback_stack_area), console_feedback,
 				       (void *)motor1, NULL, NULL, 0, 0, K_MSEC(300));
-					   
+
 	motor_control(motor1, SET_ZERO);
 	while (1) {
 

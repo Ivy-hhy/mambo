@@ -16,7 +16,6 @@
 #include <zephyr/device.h>
 #include <zephyr/drivers/can.h>
 #include <zephyr/drivers/motor.h>
-#include <zephyr/drivers/pid.h>
 
 #define CAN_TX_ID_CNT 8
 
@@ -59,8 +58,6 @@ struct dji_motor_data {
 	canbus_id_t canbus_id;
 	struct motor_controller *ctrl_struct;
 
-	// Control status
-	bool online;
 	uint8_t convert_num;
 	int8_t current_mode_index;
 
@@ -74,12 +71,10 @@ struct dji_motor_data {
 
 	uint32_t curr_time;
 	uint32_t prev_time;
-	int8_t missed_times;
 
 	float angle_offset;
 
-	float pid_angle_input;
-	float pid_ref_input;
+	float position_error;
 
 	struct k_spinlock data_input_lock;
 
@@ -87,6 +82,7 @@ struct dji_motor_data {
 	float target_angle;
 	float target_rpm;
 	float target_torque;
+	float target_torque_ff;
 	float target_current;
 	bool calculated;
 	bool new_data;
@@ -111,10 +107,8 @@ struct dji_motor_config {
 // 全局变量声明
 extern struct motor_controller ctrl_structs[];
 
-int dji_set_mode(const struct device *dev, enum motor_mode mode);
-
 int dji_get(const struct device *dev, motor_status_t *status);
-int dji_set(const struct device *dev, motor_status_t *status);
+int dji_set(const struct device *dev, motor_setpoint_t *status);
 int dji_init(const struct device *dev);
 
 void dji_control(const struct device *dev, enum motor_cmd cmd);

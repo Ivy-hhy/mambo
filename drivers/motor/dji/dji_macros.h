@@ -63,7 +63,6 @@
 		.common = MOTOR_DT_DRIVER_DATA_INST_GET(inst),                                     \
 		.canbus_id = 0,                                                                    \
 		.ctrl_struct = NULL,                                                               \
-		.online = false,                                                                   \
 		.convert_num = 0,                                                                  \
 		.current_mode_index = -1,                                                          \
 		.RAWangle = 0,                                                                     \
@@ -74,10 +73,9 @@
 		.angle_add = 0,                                                                    \
 		.curr_time = 0,                                                                    \
 		.prev_time = 0,                                                                    \
-		.missed_times = 0,                                                                 \
 		.angle_offset = 0,                                                                 \
-		.pid_angle_input = 0,                                                              \
-		.pid_ref_input = 0,                                                                \
+		.position_error = 0,                                                               \
+		.target_torque_ff = 0,                                                             \
 	};
 
 #define CONFIG_GET_FOLLOW(node) DT_PHANDLE(node, follow)
@@ -114,7 +112,6 @@
 #define DMOTOR_DEFINE_INST(inst) DMOTOR_DEFINE(inst, DT_MOTOR_NAME_INST(inst))
 
 #define DMOTOR_INST(inst)                                                                          \
-	MOTOR_DT_DRIVER_PID_DEFINE(DT_DRV_INST(inst))                                              \
 	DMOTOR_CONFIG_INST(inst)                                                                   \
 	DMOTOR_DATA_INST(inst)                                                                     \
 	DMOTOR_DEFINE_INST(inst)

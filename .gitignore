@@ -22,3 +22,8 @@ assembly.txt
 # build outputs
 build*/
 **/build*/
+
+# build outputs
+build*/
+**/build*/
+twister-out*

@@ -22,13 +22,15 @@ properties:
     required: true
   controllers:
     type: phandles
-    required: true
-  capabilities:
-    type: string-array
-    required: true
+    required: false
+  auto_report:
+    type: boolean
   v_max:
     type: string
+    required: false
   p_max:
     type: string
+    required: false
   t_max:
     type: string
+    required: false
